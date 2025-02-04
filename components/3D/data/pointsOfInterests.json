@@ -1,0 +1,5 @@
+[
+  { "id": "1", "name": "Olympus Mons", "lat": 18.39, "lon": -133.88 },
+  { "id": "2", "name": "Valles Marineris", "lat": -14.0, "lon": -56.0 },
+  { "id": "3", "name": "Gale Crater", "lat": -5.4, "lon": 137.8 }
+]
