@@ -1,6 +1,6 @@
 import { memo, useEffect, useRef } from "react";
 import { initScene } from "./scene";
-//import { initScene } from "./testScene";
+// import { initScene } from "./testScene";
 
 export default memo(function ThreeCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null!);

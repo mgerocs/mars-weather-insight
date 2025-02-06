@@ -30,12 +30,14 @@ import {
 import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
 import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
 
-import { createPin } from "./createPin";
+import { createPin } from "./marker/createMarker";
 import { createTextSprite } from "./createTextSprite";
-import poiData from "../../data/pointsOfInterests.json";
-import { createHtmlLabel } from "./createHtmlLabel";
+import pois from "../../data/pointsOfInterests.json";
+import { createHtmlLabel } from "./marker/createHtmlLabel";
 import { debounce } from "../../utils/debounce";
 import { latLonToCartesian } from "../../utils/latLonToCartesian";
+import { createPlanet } from "./planet/createPlanet";
+import { useInactivity } from "./useInactivity";
 
 export function initScene(
   canvas: HTMLCanvasElement,
@@ -44,6 +46,18 @@ export function initScene(
   let isDragging = false;
   let prevMouseX = 0;
   let prevMouseY = 0;
+
+  let rotating = false;
+
+  let inactivityTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function resetInactivityTimer() {
+    if (inactivityTimer) clearTimeout(inactivityTimer);
+    inactivityTimer = setTimeout(() => {
+      hidePins();
+      rotating = true;
+    }, 5000);
+  }
 
   const raycaster = new Raycaster();
   const mouse = new Vector2();
@@ -59,12 +73,11 @@ export function initScene(
   const renderer = new WebGLRenderer({ canvas, antialias: true });
   renderer.shadowMap.enabled = true;
 
-  const labelRenderer = new CSS2DRenderer();
+  const labelRenderer = new CSS2DRenderer({ element: labelContainer });
   labelRenderer.domElement.style.position = "absolute";
   labelRenderer.domElement.style.top = "0px";
   labelRenderer.domElement.style.pointerEvents = "none"; // Ensures clicks go through
-  labelContainer.innerHTML = "";
-  labelContainer.appendChild(labelRenderer.domElement);
+  /*  labelContainer.appendChild(labelRenderer.domElement); */
 
   const composer = new EffectComposer(renderer);
   const renderPass = new RenderPass(scene, camera);
@@ -87,115 +100,70 @@ export function initScene(
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
 
-  // LOAD TEXTURES
-
-  const textureLoader = new TextureLoader();
-
-  const normalMap = textureLoader.load("textures/mars_normal1.png");
-  const specularMap = textureLoader.load("textures/mars_spec1.png");
-  const surfaceMap = textureLoader.load("textures/mars_color1.jpg");
-
-  let marsMesh: Mesh;
-
   setSize();
 
-  let pins: Mesh[] = [];
+  const { planet, markers, onRotatePlanet } = createPlanet(
+    {
+      name: "Mars",
+      geometry: { radius: planetRadius },
+      material: {
+        surfaceMap: "textures/mars_color1.jpg",
+        normalMap: "textures/mars_normal1.png",
+        specularMap: "textures/mars_spec1.png",
+      },
+      pois,
+    },
+    scene,
+    camera
+  );
 
-  function drawContent() {
-    // ADD MESH
+  // ADD LIGHT
 
-    pins = [];
+  const directionalLight = new DirectionalLight(0xfe9d7b, 3);
+  directionalLight.position.set(20, 20, 20);
+  directionalLight.castShadow = true;
 
-    const material = new MeshPhongMaterial({
-      map: surfaceMap,
-      normalMap,
-      specularMap,
-      shininess: 30,
-      bumpScale: 0.05,
-      /*     emissive: new Color(0xf26411), */
-      /*     emissiveIntensity: 0.03, */
-    });
+  const shadow = directionalLight.shadow;
 
-    const marsGeometry = new SphereGeometry(planetRadius, 64, 64);
-    marsMesh = new Mesh(marsGeometry, material);
-    marsMesh.position.set(0, 0, 0);
-    marsMesh.castShadow = true;
-    marsMesh.receiveShadow = true;
-    scene.add(marsMesh);
+  shadow.mapSize.width = 2048;
+  shadow.mapSize.height = 2048;
 
-    // ADD PINS
+  const d = 50;
 
-    poiData.forEach((poi) => {
-      const pinHeight = 1;
-      const pin = createPin(
-        poi.lat,
-        poi.lon,
-        planetRadius,
-        marsMesh,
-        pinHeight
-      );
+  shadow.camera.left = -d;
+  shadow.camera.right = d;
+  shadow.camera.top = d;
+  shadow.camera.bottom = -d;
 
-      pin.userData.id = poi.id;
+  shadow.camera.far = 3500;
+  shadow.bias = -0.0001;
 
-      // const label = createTextSprite(poi.name);
+  scene.add(directionalLight);
 
-      const label = createHtmlLabel(poi.name);
-
-      if (label) {
-        label.position.set(0, -1 * pinHeight * 1.2, 0); // Move it slightly above the pin
-        pin.add(label); // Attach the label to the pin so it moves with it
-      }
-
-      pins.push(pin);
-    });
-
-    updateLabelsVisibility();
-
-    // ADD LIGHT
-
-    const directionalLight = new DirectionalLight(0xfe9d7b, 3);
-    directionalLight.position.set(20, 20, 20);
-    directionalLight.castShadow = true;
-
-    const shadow = directionalLight.shadow;
-
-    shadow.mapSize.width = 2048;
-    shadow.mapSize.height = 2048;
-
-    const d = 50;
-
-    shadow.camera.left = -d;
-    shadow.camera.right = d;
-    shadow.camera.top = d;
-    shadow.camera.bottom = -d;
-
-    shadow.camera.far = 3500;
-    shadow.bias = -0.0001;
-
-    scene.add(directionalLight);
-
-    /*   const pointLight = new PointLight(0xfff5f2, 10, 100);
+  /*   const pointLight = new PointLight(0xfff5f2, 10, 100);
 pointLight.position.set(20, 20, 20);
 scene.add(pointLight); */
-  }
-
-  drawContent();
 
   renderer.setAnimationLoop(animate);
+
+  // resetInactivityTimer();
 
   // ANIMATION LOOP
 
   function animate() {
     controls.update();
 
+    if (rotating) {
+      rotatePlanet(planet);
+    }
+
     composer.render();
 
     labelRenderer.render(scene, camera);
   }
 
-  function rotateObject(mesh: Mesh, deltaX: number, deltaY: number) {
-    mesh.rotation.y += deltaX / 100;
-    mesh.rotation.x += deltaY / 100;
+  function rotatePlanet(planet: Mesh) {
+    planet.rotation.y += 0.01;
   }
 
   function setSize() {
@@ -208,149 +176,7 @@ scene.add(pointLight); */
     labelRenderer.setSize(canvas.width, canvas.height);
   }
 
-  // Function to visualize the ray direction from the camera to the pin
-  function visualizeRayDirection(camera: Camera, pin: Object3D) {
-    const rayDirection = new Vector3();
-
-    // Get the world position of the pin and camera
-    const pinWorldPosition = new Vector3();
-    pin.getWorldPosition(pinWorldPosition);
-
-    const cameraWorldPosition = new Vector3();
-    camera.getWorldPosition(cameraWorldPosition);
-
-    // Compute the direction from the camera to the pin
-    rayDirection.subVectors(pinWorldPosition, cameraWorldPosition).normalize();
-
-    // Create an ArrowHelper to visualize the ray
-    const arrowHelper = new ArrowHelper(
-      rayDirection,
-      cameraWorldPosition,
-      10,
-      0xffff00
-    ); // Length is 10 (adjustable)
-    scene.add(arrowHelper);
-  }
-
-  function checkIfVisible(
-    el: Object3D,
-    camera: Camera,
-    raycaster: Raycaster,
-    occlude: Object3D[]
-  ) {
-    // Get world position of the element (in this case, the pin)
-    const elPos = new Vector3();
-    el.getWorldPosition(elPos); // Get world position instead of using matrixWorld
-
-    // Project the world position to screen space
-    const screenPos = elPos.clone().project(camera);
-
-    // Create a Vector2 for screenPos (because raycaster.setFromCamera expects Vector2)
-    const screenPos2D = new Vector2(screenPos.x, screenPos.y);
-
-    raycaster.setFromCamera(screenPos2D, camera); // Set raycaster
-
-    const intersects = raycaster.intersectObjects(occlude, true);
-    if (intersects.length) {
-      const intersectionDistance = intersects[0].distance;
-      const pointDistance = elPos.distanceTo(raycaster.ray.origin);
-
-      return pointDistance < intersectionDistance;
-    }
-
-    return true;
-  }
-
-  function checkIfObstructed(
-    pin: Object3D,
-    camera: Camera,
-    planet: Mesh
-  ): boolean {
-    const raycaster = new Raycaster();
-    const direction = new Vector3();
-
-    // Get the world position of the pin
-    const pinWorldPosition = new Vector3();
-    pin.getWorldPosition(pinWorldPosition);
-
-    // Get the world position of the camera
-    const cameraWorldPosition = new Vector3();
-    camera.getWorldPosition(cameraWorldPosition);
-
-    // Compute direction from camera to pin
-    direction.subVectors(pinWorldPosition, cameraWorldPosition).normalize();
-
-    // Set raycaster origin at camera and cast towards pin
-    raycaster.set(cameraWorldPosition, direction);
-
-    // Find intersections with the planet
-    const intersects = raycaster.intersectObject(planet, true);
-
-    // Log the intersection results for debugging
-    if (intersects.length > 0) {
-      const intersectionDistance = intersects[0].distance;
-      const pinDistance = pinWorldPosition.distanceTo(cameraWorldPosition);
-
-      /*   console.log(`Intersection Distance: ${intersectionDistance}`);
-      console.log(`Pin Distance: ${pinDistance}`); */
-
-      return intersectionDistance < pinDistance; // True if planet is blocking the pin
-    }
-
-    return false; // No intersection, pin is visible
-  }
-
-  function isBehind() {
-    // Get world positions of the planet and the pin
-    const planetWorldPos = new Vector3();
-    marsMesh.getWorldPosition(planetWorldPos);
-
-    const pinWorldPos = new Vector3();
-    pins[0].getWorldPosition(pinWorldPos);
-
-    // Get the direction vectors from the camera to the planet and to the pin
-    const cameraToPlanet = new Vector3()
-      .subVectors(planetWorldPos, camera.position)
-      .normalize();
-    const cameraToPin = new Vector3()
-      .subVectors(pinWorldPos, camera.position)
-      .normalize();
-
-    // Compute the dot product to check if the pin is behind the planet
-    const dotProduct = cameraToPlanet.dot(cameraToPin);
-
-    // If the dot product is negative, the pin is behind the planet
-    return dotProduct < 0;
-  }
-
-  function isObjectBehind(obj1: Object3D, obj2: Object3D, camera: Camera) {
-    const obj1WorldPos = new Vector3();
-    const obj2WorldPos = new Vector3();
-
-    obj1.getWorldPosition(obj1WorldPos); // Get world position of the first object
-    obj2.getWorldPosition(obj2WorldPos); // Get world position of the second object
-
-    // Project both positions into screen space
-    const screenPos1 = obj1WorldPos.clone().project(camera);
-    const screenPos2 = obj2WorldPos.clone().project(camera);
-
-    // Compare the z positions to determine if obj2 is behind obj1
-    return screenPos1.z > screenPos2.z;
-  }
-
-  function updateLabelsVisibility() {
-    pins.forEach((pin) => {
-      const isBehind = isObjectBehind(pin, marsMesh, camera);
-
-      pin.children.forEach((child) => {
-        if (child instanceof CSS2DObject) {
-          child.visible = !isBehind;
-        }
-      });
-    });
-  }
-
-  const onPointerDown = (event: MouseEvent | TouchEvent) => {
+  const handlePointerDown = (event: MouseEvent | TouchEvent) => {
     isDragging = true;
 
     if (event instanceof TouchEvent && event.touches.length > 0) {
@@ -362,7 +188,7 @@ scene.add(pointLight); */
     }
   };
 
-  const onPointerMove = (event: MouseEvent | TouchEvent) => {
+  const handlePointerMove = (event: MouseEvent | TouchEvent) => {
     if (!isDragging) return;
 
     let currentX: number;
@@ -381,16 +207,16 @@ scene.add(pointLight); */
     const deltaX = currentX - prevMouseX;
     const deltaY = currentY - prevMouseY;
 
-    marsMesh.rotation.y += deltaX * 0.005;
-    marsMesh.rotation.x += deltaY * 0.005;
+    planet.rotation.y += deltaX * 0.005;
+    planet.rotation.x += deltaY * 0.005;
 
-    updateLabelsVisibility();
+    onRotatePlanet();
 
     prevMouseX = currentX;
     prevMouseY = currentY;
   };
 
-  const onPointerUp = (event: MouseEvent | TouchEvent) => {
+  const handlePointerUp = (event: MouseEvent | TouchEvent) => {
     isDragging = false;
     handleClick(event);
   };
@@ -421,20 +247,18 @@ scene.add(pointLight); */
     raycaster.setFromCamera(mouse, camera);
 
     // Get intersected objects
-    const intersects = raycaster.intersectObjects(marsMesh.children);
+    const intersects = raycaster.intersectObjects(markers);
 
     if (intersects.length > 0) {
-      const clickedPin = intersects[0].object;
-      const poiId = clickedPin.userData.id;
+      const clickedObject = intersects[0].object;
 
-      const poi = poiData.find((poi) => poi.id === poiId);
+      if (clickedObject.name === "hitbox") {
+        const id = clickedObject.userData.id;
 
-      if (poi) {
-        console.log("Clicked: " + poi.name);
+        if (id) {
+          console.log(id);
+        }
       }
-
-      // Example: Change pin color
-      // clickedObject.material.color.set(0x00ff00);
     }
   }
 
@@ -444,29 +268,67 @@ scene.add(pointLight); */
 
   const handleResize = debounce(onResize);
 
+  const handleKeydown = (event: KeyboardEvent) => {
+    if (event.key === "h" || event.key === "H") {
+      togglePins();
+    }
+  };
+
+  const handleUserInteraction = () => {
+    showPins();
+    rotating = false;
+    resetInactivityTimer();
+  };
+
+  function hidePins() {
+    markers.forEach((marker) => (marker.visible = false));
+  }
+
+  function showPins() {
+    markers.forEach((marker) => (marker.visible = true));
+  }
+
+  function togglePins() {
+    markers.forEach((marker) => (marker.visible = !marker.visible));
+  }
+
   addEventListeners();
 
   function addEventListeners() {
-    canvas.addEventListener("mousedown", onPointerDown);
-    canvas.addEventListener("mousemove", onPointerMove);
-    canvas.addEventListener("mouseup", onPointerUp);
+    canvas.addEventListener("mousedown", handlePointerDown);
+    canvas.addEventListener("mousemove", handlePointerMove);
+    canvas.addEventListener("mouseup", handlePointerUp);
 
-    canvas.addEventListener("touchstart", onPointerDown);
-    canvas.addEventListener("touchmove", onPointerMove);
-    canvas.addEventListener("touchend", onPointerUp);
+    canvas.addEventListener("touchstart", handlePointerDown);
+    canvas.addEventListener("touchmove", handlePointerMove);
+    canvas.addEventListener("touchend", handlePointerUp);
 
+    /*  canvas.addEventListener("mousemove", handleUserInteraction);
+    canvas.addEventListener("mousedown", handleUserInteraction);
+    canvas.addEventListener("keydown", handleUserInteraction);
+    canvas.addEventListener("touchstart", handleUserInteraction);
+    canvas.addEventListener("wheel", handleUserInteraction); */
+
+    window.addEventListener("keydown", handleKeydown);
     window.addEventListener("resize", handleResize);
   }
 
   function removeEventListeners() {
-    canvas.removeEventListener("mousedown", onPointerDown);
-    canvas.removeEventListener("mousemove", onPointerMove);
-    canvas.removeEventListener("mouseup", onPointerUp);
+    canvas.removeEventListener("mousedown", handlePointerDown);
+    canvas.removeEventListener("mousemove", handlePointerMove);
+    canvas.removeEventListener("mouseup", handlePointerUp);
 
-    canvas.removeEventListener("touchstart", onPointerDown);
-    canvas.removeEventListener("touchmove", onPointerMove);
-    canvas.removeEventListener("touchend", onPointerUp);
+    canvas.removeEventListener("touchstart", handlePointerDown);
+    canvas.removeEventListener("touchmove", handlePointerMove);
+    canvas.removeEventListener("touchend", handlePointerUp);
 
+    /*  canvas.removeEventListener("mousemove", handleUserInteraction);
+    canvas.removeEventListener("mousedown", handleUserInteraction);
+    canvas.removeEventListener("keydown", handleUserInteraction);
+    canvas.removeEventListener("touchstart", handleUserInteraction);
+    canvas.removeEventListener("wheel", handleUserInteraction); */
+
+    window.removeEventListener("keydown", handleKeydown);
     window.removeEventListener("resize", handleResize);
   }
 

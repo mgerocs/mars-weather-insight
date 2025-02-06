@@ -1,5 +1,72 @@
 [
-  { "id": "1", "name": "Olympus Mons", "lat": 18.39, "lon": -133.88 },
-  { "id": "2", "name": "Valles Marineris", "lat": -14.0, "lon": -56.0 },
-  { "id": "3", "name": "Gale Crater", "lat": -5.4, "lon": 137.8 }
+  {
+    "id": "1",
+    "name": "Olympus Mons",
+    "lat": 18.39,
+    "lon": -133.88,
+    "description": "The tallest volcano in the solar system, Olympus Mons stands about 22 km high, nearly three times the height of Mount Everest."
+  },
+  {
+    "id": "2",
+    "name": "Valles Marineris",
+    "lat": -14.0,
+    "lon": -56.0,
+    "description": "A vast canyon system stretching over 4,000 km, Valles Marineris is one of the largest canyons in the solar system, dwarfing Earth's Grand Canyon."
+  },
+  {
+    "id": "3",
+    "name": "Gale Crater",
+    "lat": -5.4,
+    "lon": 137.8,
+    "description": "Home to NASA's Curiosity rover, Gale Crater is a 154 km-wide impact crater with a central mountain, Mount Sharp, offering evidence of past water activity."
+  },
+  {
+    "id": "4",
+    "name": "Hellas Planitia",
+    "lat": -42.7,
+    "lon": 70.5,
+    "description": "One of the largest impact basins on Mars, Hellas Planitia spans 2,300 km in diameter and reaches depths of over 7 km below the surface."
+  },
+  {
+    "id": "5",
+    "name": "Elysium Planitia",
+    "lat": 2.0,
+    "lon": 147.0,
+    "description": "A broad plain featuring volcanic activity, Elysium Planitia is where NASA's InSight lander studied Mars' seismic activity and subsurface heat flow."
+  },
+  {
+    "id": "6",
+    "name": "Medusae Fossae",
+    "lat": -10.0,
+    "lon": -150.0,
+    "description": "An enigmatic formation of soft, wind-eroded deposits that might be remnants of ancient volcanic ash or sedimentary layers."
+  },
+  {
+    "id": "7",
+    "name": "Arabia Terra",
+    "lat": 20.0,
+    "lon": -20.0,
+    "description": "A heavily cratered, ancient highland region that may have once supported lakes and rivers, providing clues about Mars' wetter past."
+  },
+  {
+    "id": "8",
+    "name": "Cydonia",
+    "lat": 40.75,
+    "lon": -9.46,
+    "description": "Famous for the 'Face on Mars' illusion, Cydonia contains a mix of mesas and valleys, once thought to be artificial structures."
+  },
+  {
+    "id": "9",
+    "name": "Argyre Planitia",
+    "lat": -50.0,
+    "lon": -42.0,
+    "description": "A massive impact basin thought to have once held an ancient Martian sea, surrounded by highland terrain and channels that suggest water activity."
+  },
+  {
+    "id": "10",
+    "name": "Utopia Planitia",
+    "lat": 45.0,
+    "lon": 113.0,
+    "description": "The landing site of NASA's Viking 2 mission, Utopia Planitia is a vast northern plain where underground water ice has been detected."
+  }
 ]

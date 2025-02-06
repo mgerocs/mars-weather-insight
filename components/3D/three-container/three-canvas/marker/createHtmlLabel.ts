@@ -8,7 +8,7 @@ export function createHtmlLabel(name: string): CSS2DObject {
   div.textContent = name;
 
   const label = new CSS2DObject(div);
-  label.center.set(0, 1); // Adjusts alignment
+  label.center.set(0, 1);
 
   return label;
 }
