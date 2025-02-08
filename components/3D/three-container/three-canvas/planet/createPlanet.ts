@@ -1,5 +1,4 @@
 import {
-  Group,
   Mesh,
   MeshPhongMaterial,
   Scene,
@@ -21,7 +20,7 @@ export function createPlanet(
   camera: Camera
 ): {
   planet: Mesh;
-  markers: Group[];
+  markers: Mesh[];
   onRotatePlanet: () => void;
 } {
   const pinWorldPos = new Vector3();
@@ -71,24 +70,20 @@ export function createPlanet(
     )
   );
 
-  const markers = mesh.children.filter((child) => child instanceof Group);
+  const markers = mesh.children.filter((child) => child instanceof Mesh);
 
   const updateLabelVisibility = () => {
     mesh.getWorldPosition(planetWorldPos);
 
     markers.forEach((marker) => {
-      const pin = marker.children.find((child) => child.name === "pin");
-
-      if (!pin) return;
-
-      pin.getWorldPosition(pinWorldPos);
+      marker.getWorldPosition(pinWorldPos);
 
       const screenPos1 = pinWorldPos.clone().project(camera);
       const screenPos2 = planetWorldPos.clone().project(camera);
 
       const isBehind = screenPos1.z > screenPos2.z;
 
-      pin.children.forEach((child) => {
+      marker.children.forEach((child) => {
         if (child instanceof CSS2DObject) {
           child.visible = !isBehind;
         }
