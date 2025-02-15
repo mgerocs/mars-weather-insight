@@ -41,26 +41,14 @@ import { debounce } from "../../utils/debounce";
 import { latLonToCartesian } from "../../utils/latLonToCartesian";
 import { createPlanet } from "./planet/createPlanet";
 import { useInactivity } from "./useInactivity";
+import { PlanetControls } from "./planet/PlanetControls";
 
 export function initScene(
   canvas: HTMLCanvasElement,
-  labelContainer: HTMLDivElement,
-/*   onLabelClick: (id: string) => void */
+  labelContainer: HTMLDivElement
+  /*   onLabelClick: (id: string) => void */
 ) {
-  const planetRadius = 10;
-  const initialZoomDistance = planetRadius * 2.2;
-
-  let isDragging = false;
-  let prevMouseX = 0;
-  let prevMouseY = 0;
-  let velocityX = 0;
-  let velocityY = 0;
-  let animationFrameId: number | null = null;
-
-  const minDistance = planetRadius * 2;
-  const maxDistance = planetRadius * 5;
-  let cameraDistance = initialZoomDistance;
-  let initialPinchDistance: number | null = null;
+  const planetRadius = 20;
 
   let rotating = false;
 
@@ -91,29 +79,19 @@ export function initScene(
   const labelRenderer = new CSS2DRenderer({ element: labelContainer });
   labelRenderer.domElement.style.position = "absolute";
   labelRenderer.domElement.style.top = "0px";
+  labelRenderer.domElement.style.left = "0px";
+  labelRenderer.domElement.style.bottom = "0px";
+  labelRenderer.domElement.style.right = "0px";
   // labelRenderer.domElement.style.pointerEvents = "none"; // Ensures clicks go through
-  /*  labelContainer.appendChild(labelRenderer.domElement); */
+  /*  labelContainer.appendChild(labelRenderer.domElement);*/
 
   const composer = new EffectComposer(renderer);
   const renderPass = new RenderPass(scene, camera);
   composer.addPass(renderPass);
 
-  // SET CAMERA
+  setSize(canvas, camera, renderer, labelRenderer);
 
-  camera.position.set(0, 0, initialZoomDistance);
-  camera.lookAt(0, 0, 0);
-
-  /* const controls = new OrbitControls(camera, labelContainer);
-  controls.minDistance = planetRadius * 1.8;
-  controls.maxDistance = planetRadius * 4;
-  controls.enableRotate = false;
-  controls.enablePan = false;
-  controls.enableDamping = true;
-  controls.dampingFactor = 0.05; */
-
-  setSize();
-
-  const { planet, markers, onRotatePlanet } = createPlanet(
+  const { planet, markers, updateLabelVisibility } = createPlanet(
     {
       name: "Mars",
       geometry: { radius: planetRadius },
@@ -124,9 +102,18 @@ export function initScene(
       },
       pois,
     },
-    scene,
-    camera
+    scene
   );
+
+  const planetControls = new PlanetControls({
+    planet,
+    planetRadius,
+    camera,
+    onRotate: () => updateLabelVisibility(camera),
+    onClick: handleClick,
+  });
+
+  updateLabelVisibility(camera);
 
   // ADD LIGHT
 
@@ -162,8 +149,6 @@ scene.add(pointLight); */
   // ANIMATION LOOP
 
   function animate() {
-    /*    controls.update(); */
-
     if (rotating) {
       rotatePlanet(planet);
     }
@@ -177,128 +162,24 @@ scene.add(pointLight); */
     planet.rotation.y += 0.01;
   }
 
-  function setSize() {
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    renderer.setSize(canvas.width, canvas.height);
-    camera.aspect = canvas.width / canvas.height;
+  function setSize(
+    canvas: HTMLCanvasElement,
+    camera: PerspectiveCamera,
+    renderer: WebGLRenderer,
+    labelRenderer: CSS2DRenderer
+  ) {
+    const width = window.visualViewport?.width || 0;
+    const height = window.visualViewport?.height || 0;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    camera.aspect = width / height;
     camera.updateProjectionMatrix();
 
-    labelRenderer.setSize(canvas.width, canvas.height);
+    renderer.setSize(width, height);
+    labelRenderer.setSize(width, height);
   }
-
-  const updateCameraPosition = () => {
-    // Move the camera along its forward vector while keeping the planet centered
-    const direction = new Vector3();
-    camera.getWorldDirection(direction); // Get the camera's looking direction
-    camera.position.copy(direction.multiplyScalar(-cameraDistance)); // Move the camera
-    camera.lookAt(planet.position);
-  };
-
-  const handlePointerDown = (event: MouseEvent | TouchEvent) => {
-    isDragging = true;
-    cancelAnimationFrame(animationFrameId!);
-
-    if (event instanceof TouchEvent && event.touches.length > 0) {
-      prevMouseX = event.touches[0].clientX;
-      prevMouseY = event.touches[0].clientY;
-    } else if (event instanceof MouseEvent) {
-      prevMouseX = event.clientX;
-      prevMouseY = event.clientY;
-    }
-  };
-
-  const handlePointerMove = (event: MouseEvent | TouchEvent) => {
-    if (!isDragging) return;
-
-    event.preventDefault();
-
-    let currentX: number;
-    let currentY: number;
-
-    if (event instanceof TouchEvent && event.touches.length > 0) {
-      currentX = event.touches[0].clientX;
-      currentY = event.touches[0].clientY;
-    } else if (event instanceof MouseEvent) {
-      currentX = event.clientX;
-      currentY = event.clientY;
-    } else {
-      return;
-    }
-
-    const deltaX = currentX - prevMouseX;
-    const deltaY = currentY - prevMouseY;
-
-    planet.rotation.y += deltaX * 0.005;
-    planet.rotation.x += deltaY * 0.005;
-
-    velocityX = deltaX * 0.005;
-    velocityY = deltaY * 0.005;
-
-    prevMouseX = currentX;
-    prevMouseY = currentY;
-
-    onRotatePlanet();
-  };
-
-  const handlePointerUp = (event: MouseEvent | TouchEvent) => {
-    isDragging = false;
-    handleClick(event);
-    applyInertia();
-  };
-
-  const applyInertia = () => {
-    if (Math.abs(velocityX) < 0.0001 && Math.abs(velocityY) < 0.0001) return;
-
-    planet.rotation.y += velocityX;
-    planet.rotation.x += velocityY;
-
-    // Gradually reduce velocity
-    velocityX *= 0.95;
-    velocityY *= 0.95;
-
-    onRotatePlanet();
-
-    animationFrameId = requestAnimationFrame(applyInertia);
-  };
-
-  const handleScrollZoom = (event: WheelEvent) => {
-    event.preventDefault(); // Prevent page scroll
-
-    const zoomFactor = event.deltaY * 0.01; // Adjust sensitivity
-    cameraDistance = MathUtils.clamp(
-      cameraDistance + zoomFactor,
-      minDistance,
-      maxDistance
-    );
-    updateCameraPosition();
-  };
-
-  const handleTouchZoom = (event: TouchEvent) => {
-    if (event.touches.length === 2) {
-      event.preventDefault(); // Prevent touch scrolling
-
-      const dx = event.touches[0].clientX - event.touches[1].clientX;
-      const dy = event.touches[0].clientY - event.touches[1].clientY;
-      const distance = Math.sqrt(dx * dx + dy * dy);
-
-      if (initialPinchDistance !== null) {
-        cameraDistance += (initialPinchDistance - distance) * 0.002;
-        cameraDistance = MathUtils.clamp(
-          cameraDistance,
-          minDistance,
-          maxDistance
-        );
-        updateCameraPosition();
-      }
-
-      initialPinchDistance = distance;
-    }
-  };
-
-  const resetPinchDistance = () => {
-    initialPinchDistance = null;
-  };
 
   // RAYCAST
 
@@ -358,11 +239,9 @@ scene.add(pointLight); */
     } */
   }
 
-  function onResize() {
-    setSize();
-  }
-
-  const handleResize = debounce(onResize);
+  const handleResize = debounce(() =>
+    setSize(canvas, camera, renderer, labelRenderer)
+  );
 
   const handleKeydown = (event: KeyboardEvent) => {
     if (event.key === "h" || event.key === "H") {
@@ -391,53 +270,18 @@ scene.add(pointLight); */
   addEventListeners();
 
   function addEventListeners() {
-    window.addEventListener("mousedown", handlePointerDown);
-    window.addEventListener("mousemove", handlePointerMove);
-    window.addEventListener("mouseup", handlePointerUp);
-
-    window.addEventListener("touchstart", handlePointerDown);
-    window.addEventListener("touchmove", handlePointerMove, { passive: false });
-    window.addEventListener("touchend", handlePointerUp);
-
-    window.addEventListener("wheel", handleScrollZoom, { passive: false });
-    window.addEventListener("touchmove", handleTouchZoom, { passive: false });
-    window.addEventListener("touchend", resetPinchDistance);
-
-    /*  canvas.addEventListener("mousemove", handleUserInteraction);
-    canvas.addEventListener("mousedown", handleUserInteraction);
-    canvas.addEventListener("keydown", handleUserInteraction);
-    canvas.addEventListener("touchstart", handleUserInteraction);
-    canvas.addEventListener("wheel", handleUserInteraction); */
-
     window.addEventListener("keydown", handleKeydown);
     window.addEventListener("resize", handleResize);
   }
 
   function removeEventListeners() {
-    window.removeEventListener("mousedown", handlePointerDown);
-    window.removeEventListener("mousemove", handlePointerMove);
-    window.removeEventListener("mouseup", handlePointerUp);
-
-    window.removeEventListener("touchstart", handlePointerDown);
-    window.removeEventListener("touchmove", handlePointerMove);
-    window.removeEventListener("touchend", handlePointerUp);
-
-    window.removeEventListener("wheel", handleScrollZoom);
-    window.removeEventListener("touchmove", handleTouchZoom);
-    window.removeEventListener("touchend", resetPinchDistance);
-
-    /*  canvas.removeEventListener("mousemove", handleUserInteraction);
-    canvas.removeEventListener("mousedown", handleUserInteraction);
-    canvas.removeEventListener("keydown", handleUserInteraction);
-    canvas.removeEventListener("touchstart", handleUserInteraction);
-    canvas.removeEventListener("wheel", handleUserInteraction); */
-
     window.removeEventListener("keydown", handleKeydown);
     window.removeEventListener("resize", handleResize);
   }
 
   return () => {
     removeEventListeners();
+    planetControls.disconnect();
     renderer.dispose();
   };
 }

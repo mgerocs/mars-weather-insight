@@ -1,6 +1,7 @@
 import {
   Mesh,
   MeshPhongMaterial,
+  PerspectiveCamera,
   Scene,
   SphereGeometry,
   Texture,
@@ -10,18 +11,16 @@ import {
 import { PlanetParams } from "../../../types/types";
 import { createMarker } from "../marker/createMarker";
 import { CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer.js";
-import { Camera } from "@react-three/fiber";
 
 const PIN_HEIGHT = 1;
 
 export function createPlanet(
   planet: PlanetParams,
-  scene: Scene,
-  camera: Camera
+  scene: Scene
 ): {
   planet: Mesh;
   markers: Mesh[];
-  onRotatePlanet: () => void;
+  updateLabelVisibility: (camera: PerspectiveCamera) => void;
 } {
   const pinWorldPos = new Vector3();
   const planetWorldPos = new Vector3();
@@ -72,7 +71,7 @@ export function createPlanet(
 
   const markers = mesh.children.filter((child) => child instanceof Mesh);
 
-  const updateLabelVisibility = () => {
+  const updateLabelVisibility = (camera: PerspectiveCamera) => {
     mesh.getWorldPosition(planetWorldPos);
 
     markers.forEach((marker) => {
@@ -93,11 +92,9 @@ export function createPlanet(
 
   scene.add(mesh);
 
-  updateLabelVisibility();
-
   return {
     planet: mesh,
     markers,
-    onRotatePlanet: updateLabelVisibility,
+    updateLabelVisibility,
   };
 }

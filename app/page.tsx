@@ -13,11 +13,9 @@ export default async function Home() {
 
   return (
     <>
-      <div>
-        {/*  <h1>Mars Weather - Temperature Trends</h1>
+      {/*  <h1>Mars Weather - Temperature Trends</h1>
         {initialdata && <DashboardContainer data={initialdata} />} */}
-        <ThreeContainer />
-      </div>
+      <ThreeContainer />
     </>
   );
 }
