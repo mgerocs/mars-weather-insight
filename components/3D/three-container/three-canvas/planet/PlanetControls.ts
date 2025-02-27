@@ -16,6 +16,8 @@ type PlanetControlsParams = {
 };
 
 export class PlanetControls {
+  private isEnabled = true;
+
   private planet: Mesh;
   private planetRadius: number;
   private camera: PerspectiveCamera;
@@ -58,6 +60,8 @@ export class PlanetControls {
   }
 
   private handlePointerDown = (event: MouseEvent | TouchEvent) => {
+    if (!this.isEnabled) return;
+
     this.isDragging = true;
     cancelAnimationFrame(this.animationFrameId!);
 
@@ -71,6 +75,8 @@ export class PlanetControls {
   };
 
   private handlePointerMove = (event: MouseEvent | TouchEvent) => {
+    if (!this.isEnabled) return;
+
     if (!this.isDragging) return;
 
     event.preventDefault();
@@ -104,12 +110,16 @@ export class PlanetControls {
   };
 
   private handlePointerUp = (event: MouseEvent | TouchEvent) => {
+    if (!this.isEnabled) return;
+
     this.isDragging = false;
     if (this.onClick) this.onClick(event);
     this.applyInertia();
   };
 
   private handleScrollZoom = (event: WheelEvent) => {
+    if (!this.isEnabled) return;
+
     event.preventDefault(); // Prevent page scroll
 
     const zoomFactor = event.deltaY * 0.01; // Adjust sensitivity
@@ -119,6 +129,8 @@ export class PlanetControls {
   };
 
   private handleTouchZoom = (event: TouchEvent) => {
+    if (!this.isEnabled) return;
+
     if (event.touches.length !== 2) return;
 
     event.preventDefault();
@@ -182,7 +194,6 @@ export class PlanetControls {
 
   private updateZoomSettings(planetRadius: number): ZoomSettings {
     const width = window.visualViewport?.width || 0;
-    //const height = window.visualViewport?.height || 0;
 
     if (width <= 375) {
       return {
@@ -233,6 +244,14 @@ export class PlanetControls {
     window.removeEventListener("touchend", this.resetPinchDistance);
 
     window.removeEventListener("resize", this.handleResize);
+  };
+
+  public enable = () => {
+    this.isEnabled = true;
+  };
+
+  public disable = () => {
+    this.isEnabled = false;
   };
 
   public disconnect = () => {

@@ -1,4 +1,4 @@
-import { ThreeContainer } from "@/components/3D/three-container/ThreeContainer";
+import ThreeContainer from "@/components/3D/three-container/ThreeContainer";
 import { MarsWeatherApiResponse } from "./api/mars-weather.type";
 import { DashboardContainer } from "@/components/dashboard/dashboard-container/DashboardContainer";
 

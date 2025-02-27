@@ -2,7 +2,7 @@
 
 import dynamic from "next/dynamic";
 import styles from "./ThreeContainer.module.scss";
-import { Suspense } from "react";
+import { memo, Suspense } from "react";
 
 const ThreeCanvasDynamic = dynamic(
   () => import("@/components/3D/three-container/three-canvas/ThreeCanvas"),
@@ -12,12 +12,12 @@ const ThreeCanvasDynamic = dynamic(
   }
 );
 
-export function ThreeContainer() {
+export default memo(function ThreeContainer() {
   return (
-    <div className={styles.threeContainer}>
+    <div className={styles.contentWrapper}>
       <Suspense fallback={<p>Loading...</p>}>
         <ThreeCanvasDynamic />
       </Suspense>
     </div>
   );
-}
+});

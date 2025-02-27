@@ -43,11 +43,17 @@ import { createPlanet } from "./planet/createPlanet";
 import { useInactivity } from "./useInactivity";
 import { PlanetControls } from "./planet/PlanetControls";
 
+type SceneFunctions = {
+  cleanup: () => void;
+  showLabels: (ids?: string[]) => void;
+  hideLabels: (ids?: string[]) => void;
+};
+
 export function initScene(
   canvas: HTMLCanvasElement,
-  labelContainer: HTMLDivElement
-  /*   onLabelClick: (id: string) => void */
-) {
+  labelContainer: HTMLDivElement,
+  onLabelClick: (id: string) => void
+): SceneFunctions {
   const planetRadius = 20;
 
   let rotating = false;
@@ -190,6 +196,8 @@ scene.add(pointLight); */
         marker.userData.id === id ? "#ff0000" : "#ffffff";
 
       (marker.material as MeshStandardMaterial).color.set(color);
+
+      onLabelClick(id);
     });
   }
 
@@ -279,9 +287,27 @@ scene.add(pointLight); */
     window.removeEventListener("resize", handleResize);
   }
 
-  return () => {
+  function cleanup() {
     removeEventListeners();
     planetControls.disconnect();
     renderer.dispose();
+  }
+
+  function showLabels(ids?: string[]) {
+    markers
+      .filter((marker) => (ids ? ids.includes(marker.userData.id) : true))
+      .forEach((marker) => (marker.visible = true));
+  }
+
+  function hideLabels(ids?: string[]) {
+    markers
+      .filter((marker) => (ids ? ids.includes(marker.userData.id) : true))
+      .forEach((marker) => (marker.visible = false));
+  }
+
+  return {
+    cleanup,
+    showLabels,
+    hideLabels,
   };
 }
