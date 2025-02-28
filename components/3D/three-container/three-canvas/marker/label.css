@@ -1,5 +1,5 @@
 .poi-label {
-  font-family: Arial, sans-serif;
+  font-family: inherit;
   font-size: 14px;
   color: white;
   background: rgba(0, 0, 0, 0.5);
@@ -8,5 +8,6 @@
 }
 
 .poi-label:hover {
-  color: red;
+  cursor: pointer;
+  color: #00ffff;
 }

@@ -6,7 +6,7 @@ import pois from "../../data/pointsOfInterests.json";
 import { SceneControls } from "./scene/SceneControls";
 import { AppContext, AppContextType } from "@/app/context";
 
-const FADE_DURATION = 1000;
+const FADE_DURATION = 300;
 
 type Poi = {
   id: string;
@@ -79,6 +79,8 @@ export default memo(function ThreeCanvas() {
           normalMap: "textures/mars_normal1.png",
           specularMap: "textures/mars_spec1.png",
         },
+        color: 0xfe9d7b,
+        ambientColor: 0x451804,
         pois,
       },
       onLabelClick: handleLabelClick,
@@ -104,11 +106,11 @@ export default memo(function ThreeCanvas() {
         }`}
         style={{ transitionDuration: `${FADE_DURATION}ms` }}
       >
-        <button onClick={handleCloseInfo}>ok</button>
         {poi && (
-          <div>
+          <div className={styles.text}>
             <h1>{poi.name}</h1>
             <p>{poi.description}</p>
+            <button onClick={handleCloseInfo}>Back</button>
           </div>
         )}
       </div>

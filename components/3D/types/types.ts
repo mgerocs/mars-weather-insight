@@ -1,3 +1,5 @@
+import { ColorRepresentation } from "three";
+
 export type POI = {
   id: string;
   name: string;
@@ -22,5 +24,7 @@ export type PlanetParams = {
   name: string;
   geometry: GeometryParams;
   material: MaterialParams;
+  color: ColorRepresentation;
+  ambientColor: ColorRepresentation;
   pois: POI[];
 };

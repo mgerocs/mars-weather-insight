@@ -1,9 +1,10 @@
 import {
+  AmbientLight,
   ColorRepresentation,
   DirectionalLight,
   Mesh,
-  MeshStandardMaterial,
   PerspectiveCamera,
+  PointLight,
   Scene,
   Vector2,
   WebGLRenderer,
@@ -92,7 +93,11 @@ export class SceneControls {
     updateLabelVisibility(this.camera);
 
     // LIGHTS
-    this.addLights();
+    this.addLights(
+      planetParams.geometry.radius,
+      planetParams.color,
+      planetParams.ambientColor
+    );
 
     // EVENT LISTENERS
     this.addEventListeners();
@@ -120,27 +125,32 @@ export class SceneControls {
     labelRenderer.setSize(width, height);
   };
 
-  private addLights = () => {
-    const directionalLight = new DirectionalLight(0xfe9d7b, 3);
-    directionalLight.position.set(20, 20, 20);
+  private addLights = (
+    planetRadius: number,
+    color: ColorRepresentation,
+    ambientColor: ColorRepresentation
+  ) => {
+    const ambientLight = new AmbientLight(ambientColor, 1);
+
+    this.scene.add(ambientLight);
+
+    const directionalLight = new DirectionalLight(color, 2);
+    directionalLight.position.set(
+      planetRadius * 2,
+      planetRadius,
+      planetRadius * 2
+    );
     directionalLight.castShadow = true;
 
-    const shadow = directionalLight.shadow;
-
-    shadow.mapSize.width = 2048;
-    shadow.mapSize.height = 2048;
-
-    const d = 50;
-
-    shadow.camera.left = -d;
-    shadow.camera.right = d;
-    shadow.camera.top = d;
-    shadow.camera.bottom = -d;
-
-    shadow.camera.far = 3500;
-    shadow.bias = -0.0001;
-
     this.scene.add(directionalLight);
+
+    const pointLight = new PointLight(0xffffff, 50, 100);
+    pointLight.position.set(
+      planetRadius * 0.4,
+      planetRadius * 0.4,
+      planetRadius * 1.2
+    );
+    this.scene.add(pointLight);
   };
 
   private handleResize = debounce(() =>
@@ -175,15 +185,7 @@ export class SceneControls {
   };
 
   private handleLabelClick = (id: string) => {
-    console.log(id);
-    this.markers.forEach((marker) => {
-      const color: ColorRepresentation =
-        marker.userData.id === id ? "#ff0000" : "#ffffff";
-
-      (marker.material as MeshStandardMaterial).color.set(color);
-
-      this.onLabelClick(id);
-    });
+    this.onLabelClick(id);
   };
 
   private animate = () => {
