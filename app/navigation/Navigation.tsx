@@ -33,10 +33,10 @@ export default function Navigation({
         <nav>
           <ul>
             <li>
-              <NavLink href="/">Home</NavLink>
+              <NavLink href="/">3D</NavLink>
             </li>
             <li>
-              <NavLink href="/weather">Weather</NavLink>
+              <NavLink href="/weather">Charts</NavLink>
             </li>
           </ul>
           <div className={styles.hamburgerMenu}>
@@ -47,7 +47,12 @@ export default function Navigation({
               onChange={handleExpand}
             />
 
-            <label htmlFor="menu-toggle" className={styles.hamburger}>
+            <label
+              htmlFor="menu-toggle"
+              className={`${styles.hamburger} ${
+                isNavExpanded ? styles.checked : ""
+              }`}
+            >
               <span></span>
               <span></span>
               <span></span>

@@ -13,6 +13,19 @@
     background-color: yellow;
     z-index: 100;
 
+    padding: 1.5rem;
+
+    font-size: 2rem;
+
+    ul {
+      margin: 0;
+      padding: 0;
+    }
+    li {
+      list-style-type: none;
+      margin-bottom: 0.5rem;
+    }
+
     transition: left 0.3s ease-in-out;
 
     .hamburgerMenu {
@@ -42,15 +55,15 @@
         transition: all 0.3s ease-in-out;
       }
 
-      .toggle:checked + .hamburger span:nth-child(1) {
+      .hamburger.checked span:nth-child(1) {
         transform: translateY(13px) rotate(45deg);
       }
 
-      .toggle:checked + .hamburger span:nth-child(2) {
+      .hamburger.checked span:nth-child(2) {
         opacity: 0;
       }
 
-      .toggle:checked + .hamburger span:nth-child(3) {
+      .hamburger.checked span:nth-child(3) {
         transform: translateY(-13px) rotate(-45deg);
       }
     }

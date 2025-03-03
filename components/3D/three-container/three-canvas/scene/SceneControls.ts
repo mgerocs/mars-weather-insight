@@ -17,6 +17,7 @@ import { debounce } from "@/components/3D/utils/debounce";
 
 type SceneControlsParams = {
   canvas: HTMLCanvasElement;
+  backgroundCanvas: HTMLCanvasElement;
   labelContainer: HTMLDivElement;
   planetParams: PlanetParams;
   onLabelClick: (id: string) => void;
@@ -26,6 +27,7 @@ export class SceneControls {
   private mouse = new Vector2();
 
   private canvas: HTMLCanvasElement;
+  private backgroundCanvas: HTMLCanvasElement;
 
   private scene: Scene;
   private camera: PerspectiveCamera;
@@ -40,11 +42,13 @@ export class SceneControls {
 
   constructor({
     canvas,
+    backgroundCanvas,
     labelContainer,
     planetParams,
     onLabelClick,
   }: SceneControlsParams) {
     this.canvas = canvas;
+    this.backgroundCanvas = backgroundCanvas;
     this.onLabelClick = onLabelClick;
 
     // SCENE
@@ -59,7 +63,12 @@ export class SceneControls {
     );
 
     // RENDERER
-    this.renderer = new WebGLRenderer({ canvas: this.canvas, antialias: true });
+    this.renderer = new WebGLRenderer({
+      canvas: this.canvas,
+      antialias: true,
+      alpha: true,
+    });
+    this.renderer.setClearColor(0x000000, 0);
     this.renderer.shadowMap.enabled = true;
 
     // LABEL RENDERER
@@ -72,6 +81,9 @@ export class SceneControls {
 
     // SET SIZE
     this.setSize(this.canvas, this.camera, this.renderer, this.labelRenderer);
+
+    // DRAW BACKGROUND
+    this.drawBackground();
 
     // PLANET
     const { planet, markers, updateLabelVisibility } = createPlanet(
@@ -118,6 +130,9 @@ export class SceneControls {
     canvas.width = width;
     canvas.height = height;
 
+    this.backgroundCanvas.width = width;
+    this.backgroundCanvas.height = height;
+
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
 
@@ -153,9 +168,36 @@ export class SceneControls {
     this.scene.add(pointLight);
   };
 
-  private handleResize = debounce(() =>
-    this.setSize(this.canvas, this.camera, this.renderer, this.labelRenderer)
-  );
+  private drawBackground = () => {
+    const ctx = this.backgroundCanvas.getContext("2d");
+
+    if (!ctx) return;
+
+    const NUM_STARS = 100;
+
+    ctx.fillStyle = "black";
+    ctx.fillRect(
+      0,
+      0,
+      this.backgroundCanvas.width,
+      this.backgroundCanvas.height
+    );
+
+    for (let i = 0; i < NUM_STARS; i++) {
+      const x = Math.random() * this.backgroundCanvas.width;
+      const y = Math.random() * this.backgroundCanvas.height;
+      const size = Math.random() * 2;
+      ctx.fillStyle = "white";
+      ctx.beginPath();
+      ctx.arc(x, y, size, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  };
+
+  private handleResize = debounce(() => {
+    this.setSize(this.canvas, this.camera, this.renderer, this.labelRenderer);
+    this.drawBackground();
+  });
 
   private handleClick = (event: MouseEvent | TouchEvent) => {
     const element = event.target as HTMLElement;

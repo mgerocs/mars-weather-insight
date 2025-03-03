@@ -20,6 +20,7 @@ export default memo(function ThreeCanvas() {
   const sceneControlsRef = useRef<SceneControls>(null!);
 
   const canvasRef = useRef<HTMLCanvasElement>(null!);
+  const backgroundCanvasRef = useRef<HTMLCanvasElement>(null!);
   const labelContainerRef = useRef<HTMLDivElement>(null!);
 
   const { isNavExpanded } = useContext(AppContext) as AppContextType;
@@ -35,6 +36,7 @@ export default memo(function ThreeCanvas() {
   }, [isNavExpanded]);
 
   const [poi, setPoi] = useState<Poi | undefined>(undefined);
+  const [isInfoEnabled, setInfoEnabled] = useState(false);
 
   const handleLabelClick = (id: string) => {
     const poi = pois.find((poi) => poi.id === id);
@@ -45,15 +47,21 @@ export default memo(function ThreeCanvas() {
       sceneControlsRef.current.disablePlanetControls();
       sceneControlsRef.current.hideLabels();
     }
+
+    setTimeout(() => setInfoEnabled(true), FADE_DURATION);
   };
 
   const handleCloseInfo = () => {
+    if (!isInfoEnabled) return;
+
     setPoi(undefined);
 
     if (sceneControlsRef.current) {
       sceneControlsRef.current.enablePlanetControls();
       sceneControlsRef.current.showLabels();
     }
+
+    setInfoEnabled(false);
   };
 
   useEffect(() => {
@@ -61,15 +69,21 @@ export default memo(function ThreeCanvas() {
       throw new Error("No root canvas found.");
     }
 
+    if (!backgroundCanvasRef.current) {
+      throw new Error("No background canvas found.");
+    }
+
     if (!labelContainerRef.current) {
       throw new Error("No label container found.");
     }
 
     const canvasElement = canvasRef.current;
+    const backgroundCanvasElement = backgroundCanvasRef.current;
     const labelContainerElement = labelContainerRef.current;
 
     sceneControlsRef.current = new SceneControls({
       canvas: canvasElement,
+      backgroundCanvas: backgroundCanvasElement,
       labelContainer: labelContainerElement,
       planetParams: {
         name: "Mars",
@@ -88,7 +102,6 @@ export default memo(function ThreeCanvas() {
 
     return () => {
       if (sceneControlsRef.current) {
-        console.log("DESTROY");
         sceneControlsRef.current.destroy();
       }
     };
@@ -97,8 +110,21 @@ export default memo(function ThreeCanvas() {
   return (
     <div className={styles.contentContainer}>
       <div className={styles.canvasContainer}>
-        <div ref={labelContainerRef} id="label-container"></div>
-        <canvas ref={canvasRef} id="root-canvas"></canvas>
+        <div
+          ref={labelContainerRef}
+          id="label-container"
+          className={styles.layer}
+        ></div>
+        <canvas
+          ref={backgroundCanvasRef}
+          id="background-canvas"
+          className={styles.layer}
+        ></canvas>
+        <canvas
+          ref={canvasRef}
+          id="root-canvas"
+          className={styles.layer}
+        ></canvas>
       </div>
       <div
         className={`${styles.infoContainer} ${

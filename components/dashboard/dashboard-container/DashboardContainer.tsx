@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { createContext } from "react";
 
 import styles from "./DashboardContainer.module.scss";
+import Loader from "@/components/loader/Loader";
 
 export const MarsWeatherDataContext = createContext<
   MarsWeatherApiResponse | undefined
@@ -15,7 +16,7 @@ const TemperatureChartDynamic = dynamic(
     import("@/components/dashboard/charts/temperature-chart/temperature-chart"),
   {
     ssr: false,
-    loading: () => <div>Loading...</div>,
+    loading: () => <Loader />,
   }
 );
 
@@ -23,7 +24,7 @@ const WindChartDynamic = dynamic(
   () => import("@/components/dashboard/charts/wind-chart/wind-chart"),
   {
     ssr: false,
-    loading: () => <div>Loading...</div>,
+    loading: () => <Loader />,
   }
 );
 
@@ -36,11 +37,17 @@ export function DashboardContainer({ data }: DashboardContainerProps) {
     <MarsWeatherDataContext.Provider value={data}>
       <>
         <div className={styles.dashboardContainer}>
-          <div>
-            <TemperatureChartDynamic />
+          <div className={styles.chartContainer}>
+            <h3>Temperature</h3>
+            <div className={styles.chartWrapper}>
+              <TemperatureChartDynamic />
+            </div>
           </div>
-          <div>
-            <WindChartDynamic />
+          <div className={styles.chartContainer}>
+            <h3>Wind</h3>
+            <div className={styles.chartWrapper}>
+              <WindChartDynamic />
+            </div>
           </div>
           <div></div>
         </div>

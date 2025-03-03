@@ -4,6 +4,12 @@
 
   position: relative;
 
+  .layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+  }
+
   .canvasContainer,
   .infoContainer {
     width: 100vw;
